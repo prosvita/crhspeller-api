@@ -18,10 +18,10 @@ type Sound struct {
 type SoundsStore []Sound
 
 type Sounds struct {
-    wordType uint
+    property uint
+    length int
     sounds []*Sound
     index []uint8
-    length int
 }
 
 const (
@@ -36,7 +36,7 @@ const (
 
     hardVowel           = vowel | (1 << iota)               // тверда голосна
     softVowel           = vowel | (1 << iota)               // м'яка голосна
-    undefinedVowel      = vowel | (1 << iota)               // не визначена голосна (тверда чи м'яка) (перша голосна о у)
+    // undefinedVowel      = vowel | (1 << iota)               // не визначена голосна (тверда чи м'яка) (перша голосна о у)
 
     hardness            = 1 << iota                         // звук має `Ъ`
     softness            = 1 << iota                         // звук має `Ь`
@@ -64,12 +64,13 @@ const (
 // берем последнее гласное (исключение несколько аффиксов soñ-u-nace)
 
 
-func New(lang *string, text *string) *Sounds {
+func New(lang *string, text *string) (sounds *Sounds) {
 
     tail := strings.ToLower(*text)
-    length := utf8.RuneCountInString(tail) + 2   // 2 провсяквипадок
-    sounds := Sounds{0, make([]*Sound, length), make([]uint8, length), 0}
+    length := utf8.RuneCountInString(tail) + 2   //FIXIT: 2 провсяквипадок, як що виходимо за межі, то append(sounds) та append (index)
     position := 0
+
+    sounds = &Sounds{0, 0, make([]*Sound, length), make([]uint8, length)}
 
     for utf8.RuneCountInString(tail) > 0 {
         needTrim := true
@@ -77,7 +78,24 @@ func New(lang *string, text *string) *Sounds {
         for i := 0; i < len(soundsStore); i++ {
             if strings.HasPrefix(tail, soundsStore[i].signs[*lang]) {
 
-                if !soundsStore[i].checkRules(&sounds) {
+                // Отложеная установка 
+                //  - рассчитываем, что кол-во символов в soundsStore[i].sign идут от большего кол-ва к меньшему
+                //  - при встрече с неопределенной твёрдостью/мягкостью или ещё что
+                //    - возвращаем из checkRules() exception с ошибкой "нет зависимых данных" из первого правила и длинной звука
+                //    - откусываем от tail длинну звка,
+                //    - передаём звук, его размер и указатели на позицию (i, sounds.length) в отложенную функцию
+                //    - после появления зависимостей выполняем поиск звука по soundsStore, повторяем выполнение правил
+                //      - если остается хвост после отрезания от звука — exception
+                //  - проверяем мягкость с конца слова
+                //    - если встречаем `e`, это не означает, что слово мягкое, это могут быть твэрдые аффиксы -ğac-e/-qac-e
+                //      - для проверки ищем следующее
+                //    - если встречаем кирилическое у, о, — скорее таких не будет, так как они будут ждать зависимости,
+                //      а sounds.sounds[i] == nil
+                //    - если определить не удалось, то кидаем исключение и ждем завершения отложенных функций,
+                //      от них тоже должны прийти исключения.
+                //      Дальше нужно будет думать, как с этим бороться
+
+                if !soundsStore[i].checkRules(sounds) {
                     continue
                 }
                 // fmt.Println(soundsStore[i].signs[*lang], tail, soundsStore[i].property)
@@ -96,7 +114,7 @@ func New(lang *string, text *string) *Sounds {
 
             // TODO: exception
             // TODO: посилання на SoundsStore на найближче через звичайний трансліт, або excepton
-            // sounds.sounds[sounds.length] = nil
+            // sounds.sounds[sounds.length] == nil
             sounds.index[sounds.length] = uint8(position)
             position += utf8.RuneCountInString(string([]rune(tail)[0]))
 
@@ -106,7 +124,39 @@ func New(lang *string, text *string) *Sounds {
         sounds.length++
     }
 
-    return &sounds
+    sounds.setVowelHarmony(lang)
+
+    return sounds
+}
+
+// твердые a, ı, o, u       (hard vowels)
+// мягкие e, i, ö, ü        (soft vowels)
+
+// если первое о или у то это не означает, что слово мягкое, нужно смотреть следующую согласную
+// TRYIT
+
+// Проблема: (кок, козь, кой) — а тут непонятно кроме "козь" по мягкому знаку
+// по остальным нужно смотреть на аффикс, если он есть. 
+// Таких корней очень мало. Можно посмотреть в скрипте транслитиратор как исключения.
+
+func (sounds *Sounds) setVowelHarmony(lang *string) {
+    fmt.Println(*sounds.Trace(lang))
+
+    // fmt.Println(sounds.sounds[sounds.length - 1])
+    for i := sounds.length - 1; i >= 0; i-- {
+        if sounds.sounds[i] == nil || sounds.sounds[i].property & vowel != vowel {
+            continue
+        }
+
+        fmt.Print(sounds.sounds[i].signs[*lang])
+        if sounds.sounds[i].property & hardVowel == hardVowel {
+            fmt.Print("_")
+        }
+        if sounds.sounds[i].property & softVowel == softVowel {
+            fmt.Print("^")
+        }
+    }
+    fmt.Println()
 }
 
 func (sound *Sound) checkRules(sounds *Sounds) bool {
@@ -116,7 +166,7 @@ func (sound *Sound) checkRules(sounds *Sounds) bool {
 
     for r := 0; r < len(sound.rules); r++ {
         if sound.rules[r](sounds) {
-fmt.Println("*", sound.signs["crh"])
+            // fmt.Println("*", sound.signs["crh"])
             return true
         }
     }
@@ -124,10 +174,15 @@ fmt.Println("*", sound.signs["crh"])
     return false
 }
 
-func (s *Sounds) Debug(inLang *string) *string {
+func (s *Sounds) Trace(inLang *string) *string {
     str := make([]string, s.length)
 
     for i := 0; i < s.length; i++ {
+        if s.sounds[i] == nil {
+            str[i] = "*"
+            continue
+        }
+
         str[i] = s.sounds[i].signs[*inLang]
     }
 

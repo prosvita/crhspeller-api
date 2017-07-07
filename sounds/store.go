@@ -14,41 +14,16 @@ var soundsStore = SoundsStore {
     { soundMap{"crh":"e",  "crh_RU":"е"}, []ruleFunc{afterConsonant}, softVowel },
     { soundMap{"crh":"e",  "crh_RU":"э"}, []ruleFunc{}, softVowel },
 
-// ель - yel
-// эль - el
-// екяне - yekâne
-// бинаэн - binaen
-// карьер - karyer
-
     { soundMap{"crh":"ya", "crh_RU":"я"}, []ruleFunc{wordInitially, afterVowel, afterSoftness}, hardVowel },
     { soundMap{"crh":"â",  "crh_RU":"я"}, []ruleFunc{afterConsonant}, hardVowel },
-
-// яхшы - yahşı
-// дюнья - dünya
-// ямъям - yamyam
-// къая - qaya
-// кяр - kâr
-// екяне - yekâne
-// Ягъя - Yağya
 
     { soundMap{"crh":"yo", "crh_RU":"ё"}, []ruleFunc{wordInitiallyInHard, afterVowel, afterHardness, afterSoftness}, hardVowel },
     { soundMap{"crh":"yö", "crh_RU":"ё"}, []ruleFunc{wordInitiallyInSoft}, softVowel },
 
-// тут может нужно будет "ё" и "о" местами поменять
+//TRYIT: тут может нужно будет "ё" и "о" местами поменять
     { soundMap{"crh":"ö",  "crh_RU":"ё"}, []ruleFunc{afterConsonant}, softVowel },
     { soundMap{"crh":"ö",  "crh_RU":"о"}, []ruleFunc{firstVowelInSoft}, softVowel },
     { soundMap{"crh":"o",  "crh_RU":"о"}, []ruleFunc{}, hardVowel },
-
-// если первое о или у то это не означает, что слово мягкое, нужно смотреть следующую согласную
-
-// бойле — böyle — мягкое
-// джумле — cümle — мягко
-// болдур — boldur — твёрдое
-// турсат — tursat — твёрдое
-
-// Проблема: (кок, козь, кой) — а тут непонятно кроме "козь" по мягкому знаку
-// по остальным нужно смотреть на аффикс, если он есть. 
-// Таких корней очень мало. Можно посмотреть в скрипте транслитиратор как исключения.
 
     { soundMap{"crh":"yu", "crh_RU":"ю"}, []ruleFunc{wordInitiallyInHard, afterVowelInHard, afterSoftnessInHard}, hardVowel },
     { soundMap{"crh":"yü", "crh_RU":"ю"}, []ruleFunc{wordInitiallyInSoft, afterVowelInSoft, afterSoftnessInSoft}, softVowel },
@@ -79,6 +54,8 @@ var soundsStore = SoundsStore {
     { soundMap{"crh":"y",  "crh_RU":"й"}, []ruleFunc{}, consonant },
     { soundMap{"crh":"z",  "crh_RU":"з"}, []ruleFunc{}, consonant },
 
+//TRYIT: добавить правило, по которомуму определять, после каких букв не может идти "ъ" или "ь"
+//FIXIT: научится определять в латинице, после каких звуков должен идти "ь"
     { soundMap{"crh":"",   "crh_RU":"ъ"}, []ruleFunc{}, hardness },
     { soundMap{"crh":"",   "crh_RU":"ь"}, []ruleFunc{}, softness },
 }

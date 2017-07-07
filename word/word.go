@@ -3,7 +3,7 @@ package word
 import (
    "fmt"
 
-    S "../sounds"
+    s "../sounds"
 //    "unicode/utf8"
 //    "strings"
 )
@@ -24,7 +24,7 @@ import (
 type Word struct {
     lang string
     word string
-    sounds *S.Sounds
+    sounds *s.Sounds
     // root = ???
     // tail = ???
     // capitalMask = []??? // nil by default
@@ -32,13 +32,13 @@ type Word struct {
 
 func New(lang string, text string) *Word {
 
-    sounds := S.New(&lang, &text)
+    sounds := s.New(&lang, &text)
     word := Word{lang, text, sounds}
 
     // fmt.Println(sounds)
     return &word
 }
 
-func (w *Word) Debug(inLang string) {
-    fmt.Printf("%s: %s => %s: %s\n", w.lang, w.word, inLang, (*w.sounds.Debug(&inLang)))
+func (w *Word) Trace(inLang string) {
+    fmt.Printf("%s: %s => %s: %s\n", w.lang, w.word, inLang, (*w.sounds.Trace(&inLang)))
 }
