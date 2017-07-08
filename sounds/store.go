@@ -1,61 +1,62 @@
 package sounds
 
+var dumpVowel = Sound { Signs{"?", "?"}, []ruleFunc{}, Vowel }
+
 var soundsStore = SoundsStore {
-// TODO: навесить на звуки счетчики, прогнать большой текс, отсортировать по популярности
+// TODO: відсортувати по лічильникам використання, чи зробити динамічне сортування
 
-    { soundMap{"crh":"c",  "crh_RU":"дж"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"ğ",  "crh_RU":"гъ"}, []ruleFunc{}, consonant | hardness },
-    { soundMap{"crh":"ñ",  "crh_RU":"нъ"}, []ruleFunc{}, consonant | hardness },
-    { soundMap{"crh":"q",  "crh_RU":"къ"}, []ruleFunc{}, consonant | hardness },
-    { soundMap{"crh":"ts", "crh_RU":"ц" }, []ruleFunc{}, consonant },
-    { soundMap{"crh":"şç", "crh_RU":"щ" }, []ruleFunc{}, consonant },
+    { Signs{"c",  "дж"}, []ruleFunc{}, Consonant },
+    { Signs{"ğ",  "гъ"}, []ruleFunc{}, Consonant | Hardness },
+    { Signs{"ñ",  "нъ"}, []ruleFunc{}, Consonant | Hardness },
+    { Signs{"q",  "къ"}, []ruleFunc{}, Consonant | Hardness },
+    { Signs{"ts", "ц" }, []ruleFunc{}, Consonant },
+    { Signs{"şç", "щ" }, []ruleFunc{}, Consonant },
 
-    { soundMap{"crh":"ye", "crh_RU":"е"}, []ruleFunc{wordInitially, afterVowel, afterSoftness}, softVowel },
-    { soundMap{"crh":"e",  "crh_RU":"е"}, []ruleFunc{afterConsonant}, softVowel },
-    { soundMap{"crh":"e",  "crh_RU":"э"}, []ruleFunc{}, softVowel },
+    { Signs{"ye", "е"}, []ruleFunc{setFirstVowel, wordInitially, afterVowel, afterSoftness}, SoftVowel },
+    { Signs{"e",  "е"}, []ruleFunc{setFirstVowel, afterConsonant}, SoftVowel },
+    { Signs{"e",  "э"}, []ruleFunc{setFirstVowel, eq}, SoftVowel },
 
-    { soundMap{"crh":"ya", "crh_RU":"я"}, []ruleFunc{wordInitially, afterVowel, afterSoftness}, hardVowel },
-    { soundMap{"crh":"â",  "crh_RU":"я"}, []ruleFunc{afterConsonant}, hardVowel },
+    { Signs{"ya", "я"}, []ruleFunc{setFirstVowel, wordInitially, afterVowel, afterSoftness}, HardVowel },
+    { Signs{"â",  "я"}, []ruleFunc{setFirstVowel, afterConsonant}, HardVowel },
 
-    { soundMap{"crh":"yo", "crh_RU":"ё"}, []ruleFunc{wordInitiallyInHard, afterVowel, afterHardness, afterSoftness}, hardVowel },
-    { soundMap{"crh":"yö", "crh_RU":"ё"}, []ruleFunc{wordInitiallyInSoft}, softVowel },
+    { Signs{"yo", "ё"}, []ruleFunc{setFirstVowel, wordInitiallyInHard, afterVowel, afterHardness, afterSoftness}, HardVowel },
+    { Signs{"yö", "ё"}, []ruleFunc{setFirstVowel, wordInitiallyInSoft}, SoftVowel },
+// TRYIT: незрозуміло, що робити, як-що жодне правило не спрацює, то буде y+o|y+ö, а з ё?
+    { Signs{"ö",  "о"}, []ruleFunc{setFirstVowel, firstVowelInSoft}, SoftVowel },
+    { Signs{"ö",  "ё"}, []ruleFunc{setFirstVowel, afterConsonant}, SoftVowel },
+    { Signs{"o",  "о"}, []ruleFunc{setFirstVowel, eq}, HardVowel },
 
-//TRYIT: тут может нужно будет "ё" и "о" местами поменять
-    { soundMap{"crh":"ö",  "crh_RU":"ё"}, []ruleFunc{afterConsonant}, softVowel },
-    { soundMap{"crh":"ö",  "crh_RU":"о"}, []ruleFunc{firstVowelInSoft}, softVowel },
-    { soundMap{"crh":"o",  "crh_RU":"о"}, []ruleFunc{}, hardVowel },
+    { Signs{"yu", "ю"}, []ruleFunc{setFirstVowel, wordInitiallyInHard, afterVowelInHard, afterSoftnessInHard}, HardVowel },
+    { Signs{"yü", "ю"}, []ruleFunc{setFirstVowel, wordInitiallyInSoft, afterVowelInSoft, afterSoftnessInSoft}, SoftVowel },
+    { Signs{"ü",  "у"}, []ruleFunc{setFirstVowel, firstVowelInSoft}, SoftVowel },
+    { Signs{"ü",  "ю"}, []ruleFunc{setFirstVowel, afterConsonant}, SoftVowel },
+    { Signs{"u",  "у"}, []ruleFunc{setFirstVowel, eq}, HardVowel },
 
-    { soundMap{"crh":"yu", "crh_RU":"ю"}, []ruleFunc{wordInitiallyInHard, afterVowelInHard, afterSoftnessInHard}, hardVowel },
-    { soundMap{"crh":"yü", "crh_RU":"ю"}, []ruleFunc{wordInitiallyInSoft, afterVowelInSoft, afterSoftnessInSoft}, softVowel },
-    { soundMap{"crh":"ü",  "crh_RU":"ю"}, []ruleFunc{afterConsonant}, softVowel },
-    { soundMap{"crh":"ü",  "crh_RU":"у"}, []ruleFunc{firstVowelInSoft}, softVowel },
-    { soundMap{"crh":"u",  "crh_RU":"у"}, []ruleFunc{}, hardVowel },
+    { Signs{"a",  "а"}, []ruleFunc{setFirstVowel, eq}, HardVowel },
+    { Signs{"b",  "б"}, []ruleFunc{}, Consonant },
+    { Signs{"ç",  "ч"}, []ruleFunc{}, Consonant },
+    { Signs{"d",  "д"}, []ruleFunc{}, Consonant },
+    { Signs{"f",  "ф"}, []ruleFunc{}, Consonant },
+    { Signs{"g",  "г"}, []ruleFunc{}, Consonant },
+    { Signs{"h",  "х"}, []ruleFunc{}, Consonant },
+    { Signs{"ı",  "ы"}, []ruleFunc{setFirstVowel, eq}, HardVowel },
+    { Signs{"i",  "и"}, []ruleFunc{setFirstVowel, eq}, SoftVowel },
+    { Signs{"j",  "ж"}, []ruleFunc{}, Consonant },
+    { Signs{"k",  "к"}, []ruleFunc{}, Consonant },
+    { Signs{"l",  "л"}, []ruleFunc{}, Consonant },
+    { Signs{"m",  "м"}, []ruleFunc{}, Consonant },
+    { Signs{"n",  "н"}, []ruleFunc{}, Consonant },
+    { Signs{"p",  "п"}, []ruleFunc{}, Consonant },
+    { Signs{"r",  "р"}, []ruleFunc{}, Consonant },
+    { Signs{"s",  "с"}, []ruleFunc{}, Consonant },
+    { Signs{"ş",  "ш"}, []ruleFunc{}, Consonant },
+    { Signs{"t",  "т"}, []ruleFunc{}, Consonant },
+    { Signs{"v",  "в"}, []ruleFunc{}, Consonant },
+    { Signs{"y",  "й"}, []ruleFunc{}, Consonant },
+    { Signs{"z",  "з"}, []ruleFunc{}, Consonant },
 
-    { soundMap{"crh":"a",  "crh_RU":"а"}, []ruleFunc{}, hardVowel },
-    { soundMap{"crh":"b",  "crh_RU":"б"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"ç",  "crh_RU":"ч"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"d",  "crh_RU":"д"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"f",  "crh_RU":"ф"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"g",  "crh_RU":"г"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"h",  "crh_RU":"х"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"ı",  "crh_RU":"ы"}, []ruleFunc{}, hardVowel },
-    { soundMap{"crh":"i",  "crh_RU":"и"}, []ruleFunc{}, softVowel },
-    { soundMap{"crh":"j",  "crh_RU":"ж"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"k",  "crh_RU":"к"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"l",  "crh_RU":"л"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"m",  "crh_RU":"м"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"n",  "crh_RU":"н"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"p",  "crh_RU":"п"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"r",  "crh_RU":"р"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"s",  "crh_RU":"с"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"ş",  "crh_RU":"ш"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"t",  "crh_RU":"т"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"v",  "crh_RU":"в"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"y",  "crh_RU":"й"}, []ruleFunc{}, consonant },
-    { soundMap{"crh":"z",  "crh_RU":"з"}, []ruleFunc{}, consonant },
-
-//TRYIT: добавить правило, по которомуму определять, после каких букв не может идти "ъ" или "ь"
-//FIXIT: научится определять в латинице, после каких звуков должен идти "ь"
-    { soundMap{"crh":"",   "crh_RU":"ъ"}, []ruleFunc{}, hardness },
-    { soundMap{"crh":"",   "crh_RU":"ь"}, []ruleFunc{}, softness },
+// TRYIT: додати правило яке визначає, за якими буквами не можуть йти "ъ" чи "ь"
+// FIXIT: навчити визначати латинці, за яким звуком має йти "ь"
+    { Signs{"",   "ъ"}, []ruleFunc{}, Hardness },
+    { Signs{"",   "ь"}, []ruleFunc{}, Softness },
 }

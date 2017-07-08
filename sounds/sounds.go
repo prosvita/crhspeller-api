@@ -1,17 +1,17 @@
 package sounds
 
+import "fmt"
 import (
-    "fmt"
-
+    lc "../langcode"
     "unicode/utf8"
     "strings"
 )
 
-type soundMap map[string]string
-type ruleFunc func(*Sounds) bool
+type Signs [lc.Size]string
+type ruleFunc func(*Sounds, int) (bool, bool)
 
 type Sound struct {
-    signs soundMap
+    signs Signs
     rules []ruleFunc
     property uint
 }
@@ -20,91 +20,58 @@ type SoundsStore []Sound
 type Sounds struct {
     property uint
     length int
+    firstVowel int
     sounds []*Sound
     index []uint8
 }
 
 const (
-    vowel               = 1 << iota                         // голосна
-    consonant           = 1 << iota                         // приголосна
-    sonorant            = consonant | (1 << iota)           // сонант (сонорний приголосний звук)
-    voiced              = 1 << iota                         // дзвінка
-    voiceless           = 1 << iota                         // глуха
-    obstruent           = consonant | (1 << iota)           // шумна приголосна
-    voicedObstruent     = consonant | voiced | obstruent    // дзвінка шумна приголосна
-    voicelessObstruent  = consonant | voiceless | obstruent // глуха шумна приголосна
+    Vowel               = 1 << iota                         // голосна
+    HardVowel           = Vowel | (1 << iota)               // тверда голосна
+    SoftVowel           = Vowel | (1 << iota)               // м'яка голосна
 
-    hardVowel           = vowel | (1 << iota)               // тверда голосна
-    softVowel           = vowel | (1 << iota)               // м'яка голосна
-    // undefinedVowel      = vowel | (1 << iota)               // не визначена голосна (тверда чи м'яка) (перша голосна о у)
+    Consonant           = 1 << iota                         // приголосна
 
-    hardness            = 1 << iota                         // звук має `Ъ`
-    softness            = 1 << iota                         // звук має `Ь`
+    // sonorant            = Consonant | (1 << iota)           // сонант (сонорний приголосний звук)
+    // voiced              = 1 << iota                         // дзвінка
+    // voiceless           = 1 << iota                         // глуха
+    // obstruent           = Consonant | (1 << iota)           // шумна приголосна
+    // voicedObstruent     = Consonant | voiced | obstruent    // дзвінка шумна приголосна
+    // voicelessObstruent  = Consonant | voiceless | obstruent // глуха шумна приголосна
+
+    Hardness            = 1 << iota                         // звук має `Ъ`
+    Softness            = 1 << iota                         // звук має `Ь`
 )
-// Consonant согласные
 
-// sonorant р, л, м, н, нъ
-// звонкие шумные: б, в, д, з, ж, г, гъ, дж;        (voiced obstruent)
-// глухие шумные: п, т, ф, с, ш, ч, к, ъ, х, ц, щ.  (voiceless obstruent)
-
-// voicing              дзвінкі
-// voiced consonants    дзвінкі приголосні
-
-// voicelessness        глухі
-// voiceless vowels     глухі голосні
-// voiceless consonants глухі приголосні
-
-// Vowel гласные
-// твердые a, ı, o, u       (hard vowels)
-// мягкие e, i, ö, ü        (soft vowels)
-// // не работает в заимствованиях для звуков
-// // работает для аффиксов
-// karyer-lerimizden
-// для аффиксов последний звук из корня ()
-// берем последнее гласное (исключение несколько аффиксов soñ-u-nace)
-
-
-func New(lang *string, text *string) (sounds *Sounds) {
+func New(lang int, text *string) (sounds *Sounds) {
 
     tail := strings.ToLower(*text)
     length := utf8.RuneCountInString(tail) + 2   //FIXIT: 2 провсяквипадок, як що виходимо за межі, то append(sounds) та append (index)
     position := 0
 
-    sounds = &Sounds{0, 0, make([]*Sound, length), make([]uint8, length)}
+    sounds = &Sounds{0, 0, -1, make([]*Sound, length), make([]uint8, length)}
 
     for utf8.RuneCountInString(tail) > 0 {
         needTrim := true
 
         for i := 0; i < len(soundsStore); i++ {
-            if strings.HasPrefix(tail, soundsStore[i].signs[*lang]) {
+            if strings.HasPrefix(tail, soundsStore[i].signs[lang]) {
 
-                // Отложеная установка 
-                //  - рассчитываем, что кол-во символов в soundsStore[i].sign идут от большего кол-ва к меньшему
-                //  - при встрече с неопределенной твёрдостью/мягкостью или ещё что
-                //    - возвращаем из checkRules() exception с ошибкой "нет зависимых данных" из первого правила и длинной звука
-                //    - откусываем от tail длинну звка,
-                //    - передаём звук, его размер и указатели на позицию (i, sounds.length) в отложенную функцию
-                //    - после появления зависимостей выполняем поиск звука по soundsStore, повторяем выполнение правил
-                //      - если остается хвост после отрезания от звука — exception
-                //  - проверяем мягкость с конца слова
-                //    - если встречаем `e`, это не означает, что слово мягкое, это могут быть твэрдые аффиксы -ğac-e/-qac-e
-                //      - для проверки ищем следующее
-                //    - если встречаем кирилическое у, о, — скорее таких не будет, так как они будут ждать зависимости,
-                //      а sounds.sounds[i] == nil
-                //    - если определить не удалось, то кидаем исключение и ждем завершения отложенных функций,
-                //      от них тоже должны прийти исключения.
-                //      Дальше нужно будет думать, как с этим бороться
-
-                if !soundsStore[i].checkRules(sounds) {
+                caught, compute := soundsStore[i].checkRules(sounds, sounds.length)
+                if !caught && compute { // жодне правило не спрацювало
                     continue
                 }
-                // fmt.Println(soundsStore[i].signs[*lang], tail, soundsStore[i].property)
 
-                sounds.sounds[sounds.length] = &soundsStore[i]
+                if compute {
+                    sounds.sounds[sounds.length] = &soundsStore[i]
+                } else {
+                    sounds.sounds[sounds.length] = &dumpVowel
+                    defer sounds.resetSound(sounds.length, i, lang)
+                }
                 sounds.index[sounds.length] = uint8(position)
-                position += utf8.RuneCountInString(soundsStore[i].signs[*lang])
+                position += utf8.RuneCountInString(soundsStore[i].signs[lang])
 
-                tail = strings.TrimPrefix(tail, soundsStore[i].signs[*lang])
+                tail = strings.TrimPrefix(tail, soundsStore[i].signs[lang])
                 needTrim = false
                 break
             }
@@ -129,52 +96,85 @@ func New(lang *string, text *string) (sounds *Sounds) {
     return sounds
 }
 
-// твердые a, ı, o, u       (hard vowels)
-// мягкие e, i, ö, ü        (soft vowels)
+func (sounds *Sounds) resetSound(index, start, lang int) {
+    needTrim := true
+    tail := soundsStore[start].signs[lang]
 
-// если первое о или у то это не означает, что слово мягкое, нужно смотреть следующую согласную
-// TRYIT
+    for i := start; i < len(soundsStore); i++ {
+        if strings.HasPrefix(tail, soundsStore[i].signs[lang]) {
 
-// Проблема: (кок, козь, кой) — а тут непонятно кроме "козь" по мягкому знаку
-// по остальным нужно смотреть на аффикс, если он есть. 
-// Таких корней очень мало. Можно посмотреть в скрипте транслитиратор как исключения.
+            caught, compute := soundsStore[i].checkRules(sounds, index)
+// fmt.Printf("%v> BOO %v %v %v\n",index , caught, compute, soundsStore[i].signs[lang])
+            if !caught && compute { // жодне правило не спрацювало
+                continue
+            }
 
-func (sounds *Sounds) setVowelHarmony(lang *string) {
-    fmt.Println(*sounds.Trace(lang))
+            if compute {
+                sounds.sounds[index] = &soundsStore[i]
+            } else {
+                //FIXIT: потрібно з'ясувати, у яких випадках це можливе, і всі ці випадки відобразити у rules
+                fmt.Printf("%v> EXCEPTION not compute\n", index)
+                return
+            }
 
-    // fmt.Println(sounds.sounds[sounds.length - 1])
+            needTrim = false
+            break
+        }
+    }
+    if needTrim {  // exception
+        fmt.Printf("%v> EXCEPTION needTrim\n", index)
+        //FIXIT: такої ситуації не має статись, але як що виникне, потрібно розсунути масив
+        return
+    }
+}
+
+// Шукаємо з кінця голосні
+//   - a, â, ı, o, u — hard vowels
+//   - e, i, ö, ü — soft vowels
+// За ними встановлюємо гармонію слова
+// FIXIT: як визначити гармонію у словах з одним голосним в корні, який замінили на dumpVowel:
+//  - подивитись Softness у sounds[i+2] (козь)
+//  - для crh o, u — завжди hard
+//  - для crh ö, ü — завжди soft
+//  - що ще?
+func (sounds *Sounds) setVowelHarmony(  lang int) {
+
     for i := sounds.length - 1; i >= 0; i-- {
-        if sounds.sounds[i] == nil || sounds.sounds[i].property & vowel != vowel {
+        // FIXIT: що робити з dumpVowel?
+        if sounds.sounds[i] == nil || sounds.sounds[i] == &dumpVowel || sounds.sounds[i].property & Vowel != Vowel {
             continue
         }
 
-        fmt.Print(sounds.sounds[i].signs[*lang])
-        if sounds.sounds[i].property & hardVowel == hardVowel {
-            fmt.Print("_")
+        // FIXIT: `e` не дає гарантії, що слово м'яке, потрібно перевірити на тверді афікси -ğace/-qace
+        if sounds.sounds[i].property & HardVowel == HardVowel {
+            sounds.property |= HardVowel
+            // FIXIT: виключення
+            break
         }
-        if sounds.sounds[i].property & softVowel == softVowel {
-            fmt.Print("^")
+        if sounds.sounds[i].property & SoftVowel == SoftVowel {
+            sounds.property |= SoftVowel
+            // FIXIT: виключення
+            break
         }
     }
-    fmt.Println()
 }
 
-func (sound *Sound) checkRules(sounds *Sounds) bool {
+func (sound *Sound) checkRules(sounds *Sounds, index int) (bool, bool) {
     if len(sound.rules) == 0 {
-        return true
+        return true, true
     }
 
     for r := 0; r < len(sound.rules); r++ {
-        if sound.rules[r](sounds) {
-            // fmt.Println("*", sound.signs["crh"])
-            return true
+        caught, compute := sound.rules[r](sounds, index)
+        if caught || !compute {
+            return caught, compute
         }
     }
 
-    return false
+    return false, true
 }
 
-func (s *Sounds) Trace(inLang *string) *string {
+func (s *Sounds) Trace(inLang int) *string {
     str := make([]string, s.length)
 
     for i := 0; i < s.length; i++ {
@@ -183,7 +183,7 @@ func (s *Sounds) Trace(inLang *string) *string {
             continue
         }
 
-        str[i] = s.sounds[i].signs[*inLang]
+        str[i] = s.sounds[i].signs[inLang]
     }
 
     result := strings.Join(str[:], "-")

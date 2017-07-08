@@ -16,10 +16,9 @@ func main() {
         fmt.Println(err)
         return
     }
-    fmt.Println(lang, lc.Crh_RU)
 
-    w := word.New(args[1], args[2])
-    // fmt.Println(w)
-    w.Trace("crh")
-    w.Trace("crh_RU")
+    w := word.New(lang, args[2])
+
+    w.Trace(lc.Crh)
+    w.Trace(lc.Crh_RU)
 }
