@@ -143,3 +143,39 @@ func (test TestData) crossAssert(t *testing.T) {
         }
     }
 }
+
+func TestInsert(t *testing.T) {
+    var tests = []struct {
+        position int
+        text, want string
+        err bool
+    }{
+        { 0, "", "x", false },
+        { 1, "", "", true },
+        { 0, "ana", "x-a-n-a", false },
+        { 2, "ana", "a-n-x-a", false },
+        { 3, "ana", "a-n-a-x", false },
+        { 4, "ana", "a-n-a", true },
+        { -1, "ana", "a-n-a", true },
+        { 2, "yahşı", "ya-h-x-ş-ı", false },
+        { 4, "yahşı", "ya-h-ş-ı-x", false },
+    }
+    var dump = Sound { Signs{"x", "х"}, []ruleFunc{}, Consonant }
+
+    for _, test := range tests {
+        sounds := New(lc.Crh, &test.text)
+        err := sounds.Insert(test.position, &dump)
+        got := *sounds.Trace(lc.Crh)
+        if got != test.want || e2Bool(err) != test.err {
+            t.Errorf("(%q).InsertTo(%v, %q) => %q, error:%v; want %q, error:%v",
+                test.text, test.position, "x", got, e2Bool(err), test.want, test.err)
+        }
+    }
+}
+
+func e2Bool(err error) bool {
+    if err != nil {
+        return true
+    }
+    return false
+}

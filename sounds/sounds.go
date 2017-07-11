@@ -5,6 +5,7 @@ import (
     lc "../langcode"
     "unicode/utf8"
     "strings"
+    "errors"
 )
 
 type Signs [lc.Size]string
@@ -46,7 +47,7 @@ const (
 func New(lang int, text *string) (sounds *Sounds) {
 
     tail := strings.ToLower(*text)
-    length := utf8.RuneCountInString(tail) + 2   //FIXIT: 2 провсяквипадок, як що виходимо за межі, то append(sounds) та append (index)
+    length := utf8.RuneCountInString(tail)  // може бути більш, але не меньш ніж потрібно
     position := 0
 
     sounds = &Sounds{0, 0, -1, make([]*Sound, length), make([]uint8, length)}
@@ -128,6 +129,29 @@ func (sounds *Sounds) resetSound(index, start, lang int) {
     }
 }
 
+func (sounds *Sounds) Insert(position int, sound *Sound) error {
+    if position > sounds.length || position < 0 {
+        return errors.New("sounds: insert in position out of range")
+    }
+
+    old := sounds.sounds
+    if len(sounds.sounds) - 1 < sounds.length {
+        sounds.sounds = make([]*Sound, sounds.length + 1)
+        for i := 0; i < position; i++ {
+            sounds.sounds[i] = old[i]
+        }
+    }
+
+    for i := sounds.length - 1; i >= position; i-- {
+        sounds.sounds[i + 1] = old[i]
+    }
+
+    sounds.sounds[position] = sound
+    sounds.length++
+
+    return nil
+}
+
 // Шукаємо з кінця голосні
 //   - a, â, ı, o, u — hard vowels
 //   - e, i, ö, ü — soft vowels
@@ -174,16 +198,16 @@ func (sound *Sound) checkRules(sounds *Sounds, index int) (bool, bool) {
     return false, true
 }
 
-func (s *Sounds) Trace(inLang int) *string {
-    str := make([]string, s.length)
+func (sounds *Sounds) Trace(inLang int) *string {
+    str := make([]string, sounds.length)
 
-    for i := 0; i < s.length; i++ {
-        if s.sounds[i] == nil {
+    for i := 0; i < sounds.length; i++ {
+        if sounds.sounds[i] == nil {
             str[i] = "*"
             continue
         }
 
-        str[i] = s.sounds[i].signs[inLang]
+        str[i] = sounds.sounds[i].signs[inLang]
     }
 
     result := strings.Join(str[:], "-")
