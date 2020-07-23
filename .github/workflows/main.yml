@@ -13,3 +13,8 @@ jobs:
       run: |
         env | sort
         ls -la
+    - name: Docker hook
+      env:
+        DOCKER_SOURCE: ${{ secrets.DOCKER_SOURCE_TEST }}
+        DOCKER_TRIGGER: ${{ secrets.DOCKER_TRIGGER_TEST }}
+      run: echo curl -X POST https://hub.docker.com/api/build/v1/source/${DOCKER_SOURCE}/trigger/${DOCKER_TRIGGER}/call/
