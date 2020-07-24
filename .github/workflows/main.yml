@@ -2,6 +2,16 @@ name: CI
 on:
   schedule:
   - cron: "45 3 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      deploy_group:
+        description: Group name in ansible inventory file
+        required: true
+        default: dev
+      deploy_state:
+        description: "One of the states: staging, current, restore, absent, balancer, sync, test"
+        required: true
+        default: staging
 
 jobs:
   build:
@@ -10,11 +20,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Run sh
+      env:
+        DEPLOY_GROUP: ${{ github.event.inputs.deploy_group }}
+        DEPLOY_STATE: ${{ github.event.inputs.deploy_state }}
       run: |
         env | sort
         ls -la
-    - name: Docker hook
-      env:
-        DOCKER_SOURCE: ${{ secrets.DOCKER_SOURCE_TEST }}
-        DOCKER_TRIGGER: ${{ secrets.DOCKER_TRIGGER_TEST }}
-      run: echo curl -X POST https://hub.docker.com/api/build/v1/source/${DOCKER_SOURCE}/trigger/${DOCKER_TRIGGER}/call/
